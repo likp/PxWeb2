@@ -75,6 +75,18 @@ services:
         cp /usr/share/nginx/html/config/config.js /cfg/config.js
         sed -i 's|https://api.scb.se/OV0104/v2beta/api/v2|http://localhost:8080/api/v2|g' /cfg/config.js
 
+        if [ -z "$( ls -A '/locales' )" ]; then
+          cp -r /usr/share/nginx/html/locales/* /locales
+        else
+          echo "Skip copying locales folder. Destionation is not Empty"
+        fi
+
+        if [ -z "$( ls -A '/theme' )" ]; then
+          cp -r /usr/share/nginx/html/theme/* /theme
+        else
+          echo "Skip copying theme folder. Destionation is not Empty"
+        fi
+
         tableId=$(grep -m 1 "<Link" /db/Menu.xml | sed -n 's/.*tableId="\([^"]*\)".*/\1/p')
         echo "http://localhost:8888/table/$$tableId"
        
@@ -83,6 +95,8 @@ services:
         ipv4_address: 192.168.70.22
     volumes:
       - px-web-config:/cfg
+      - px-web-locales:/locales
+      - px-web-theme:/theme
       - px-database:/db
     depends_on:
       init-api:
@@ -96,6 +110,8 @@ services:
         ipv4_address: 192.168.70.24
     volumes:
       - px-web-config:/usr/share/nginx/html/config
+      - px-web-locales:/usr/share/nginx/html/locales
+      - px-web-theme:/usr/share/nginx/html/theme
     depends_on:
       pxweb2-init:
         condition: service_completed_successfully
@@ -122,3 +138,15 @@ volumes:
       type: none
       o: bind
       device: ${PX_WEB_CONFIG_PATH:?error}
+  px-web-locales:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PX_WEB_LOCALES_PATH:?error}
+  px-web-theme:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PX_WEB_THEME_PATH:?error}
