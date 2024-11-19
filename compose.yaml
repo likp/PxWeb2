@@ -65,56 +65,34 @@ services:
       - px-database:/app/wwwroot/Database
 
 
-  pxweb2-init:
-    image: ghcr.io/likp/pxweb2:v0.0.1
+  pxweb2:
+    image: ghcr.io/likp/pxweb2:v0.0.2
+    ports:
+      - "8888:8080"   
     command: /bin/sh -c "echo \"$$INIT_SCRIPT\" > /tmp/init-pxweb.sh; chmod +x /tmp/init-pxweb.sh; sh /tmp/init-pxweb.sh"
     environment:
       INIT_SCRIPT: |-
         #!/bin/sh
 
-        cp /usr/share/nginx/html/config/config.js /cfg/config.js
-        sed -i 's|https://api.scb.se/OV0104/v2beta/api/v2|http://localhost:8080/api/v2|g' /cfg/config.js
-
-        if [ -z "$( ls -A '/locales' )" ]; then
-          cp -r /usr/share/nginx/html/locales/* /locales
-        else
-          echo "Skip copying locales folder. Destionation is not Empty"
-        fi
-
-        if [ -z "$( ls -A '/theme' )" ]; then
-          cp -r /usr/share/nginx/html/theme/* /theme
-        else
-          echo "Skip copying theme folder. Destionation is not Empty"
-        fi
+        sed -i 's|https://api.scb.se/OV0104/v2beta/api/v2|http://localhost:8080/api/v2|g' /usr/share/nginx/html/config/config.js
 
         tableId=$(grep -m 1 "<Link" /db/Menu.xml | sed -n 's/.*tableId="\([^"]*\)".*/\1/p')
         echo "http://localhost:8888/table/$$tableId"
+
+        nginx -g "daemon off;"
        
     networks:
       px-network:
         ipv4_address: 192.168.70.22
     volumes:
-      - px-web-config:/cfg
-      - px-web-locales:/locales
-      - px-web-theme:/theme
+      - px-web-config:/usr/share/nginx/html/config
+      - px-web-locales:/usr/share/nginx/html/locales
+      - px-web-theme:/usr/share/nginx/html/theme
       - px-database:/db
     depends_on:
       init-api:
         condition: service_completed_successfully
-  pxweb:
-    image: ghcr.io/likp/pxweb2:v0.0.1
-    ports:
-      - "8888:8080"   
-    networks:
-      px-network:
-        ipv4_address: 192.168.70.24
-    volumes:
-      - px-web-config:/usr/share/nginx/html/config
-      - px-web-locales:/usr/share/nginx/html/locales
-      - px-web-theme:/usr/share/nginx/html/theme
-    depends_on:
-      pxweb2-init:
-        condition: service_completed_successfully
+
 networks:
   px-network:
     driver: bridge
